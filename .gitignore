@@ -1,0 +1,8 @@
+.env
+env
+tasks/
+.venv
+.aiforopenide
+.gigaide
+.idea
+tmp
