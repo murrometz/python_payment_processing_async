@@ -15,7 +15,9 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Take the DB URL from the environment (DATABASE_URL)
-database_url = os.getenv("DATABASE_URL", "postgresql+asyncpg://user:password@localhost:5432/payments")
+database_url = os.getenv("DATABASE_URL")
+if not database_url:
+    raise RuntimeError("DATABASE_URL is not set - define it in .env (see .env.example)")
 config.set_main_option("sqlalchemy.url", database_url)
 
 target_metadata = Base.metadata

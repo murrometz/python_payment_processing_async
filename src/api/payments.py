@@ -30,39 +30,37 @@ async def create_payment(
         amount=payment_data.amount,
         currency=payment_data.currency.value,
         description=payment_data.description,
-        # `metadata` is reserved by SQLAlchemy Declarative; the attribute is
-        # payment_metadata while the DB column stays `metadata`
-        payment_metadata=payment_data.metadata,
+        additional=payment_data.additional,
         idempotency_key=idempotency_key,
         webhook_url=payment_data.webhook_url,
-        status=PaymentStatus.PENDING,
+        status=PaymentStatus.PENDING.value,
     )
 
-    # Classic outbox: the event is written to the outbox table in the SAME
-    # transaction as the business data. No direct publish to RabbitMQ here:
-    # the outbox worker publishes it after the commit, so a crash between
-    # commit and publish can never lose the event.
+    # Outbox pattern: the "payment.new" event is written to the outbox table
+    # in the SAME transaction as the payment itself. The outbox relay worker
+    # publishes it to RabbitMQ afterwards - so the event can never be lost
+    # after a successful commit.
     outbox_entry = OutboxMessage(
+        id=str(uuid4()),
         event_type="payment.new",
-        payload={
-            "event": "payment.new",
-            "payment_id": payment_id,
-            "attempt": 0,
-        },
+        payload={"payment_id": payment_id},
+        processed=False,
     )
 
     db.add(new_payment)
     db.add(outbox_entry)
+
+    # Handle the idempotency race: two concurrent requests with the same
+    # Idempotency-Key - the loser of the unique constraint returns the winner's payment
     try:
         await db.commit()
     except IntegrityError:
-        # Concurrent request with the same Idempotency-Key: return the winner
         await db.rollback()
         result = await db.execute(select(Payment).where(Payment.idempotency_key == idempotency_key))
-        winner = result.scalar_one_or_none()
-        if winner:
-            return PaymentResponse.model_validate(winner)
-        raise
+        existing_payment = result.scalar_one_or_none()
+        if existing_payment:
+            return PaymentResponse.model_validate(existing_payment)
+        raise HTTPException(status_code=500, detail="Failed to create payment")
 
     await db.refresh(new_payment)
     return PaymentResponse.model_validate(new_payment)

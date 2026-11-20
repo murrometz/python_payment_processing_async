@@ -1,11 +1,14 @@
+import os
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-from contextlib import asynccontextmanager
-import os
 
 from src.database.database import engine
 
-API_KEY = os.getenv("API_KEY", "your_static_api_key_here")
+API_KEY = os.getenv("API_KEY")
+if not API_KEY:
+    raise RuntimeError("API_KEY is not set - define it in .env (see .env.example)")
 
 
 @asynccontextmanager
@@ -41,6 +44,6 @@ async def health():
     return {"status": "ok"}
 
 
-from src.api import payments
+from . import payments
 
 app.include_router(payments.router, prefix="/api/v1", tags=["payments"])

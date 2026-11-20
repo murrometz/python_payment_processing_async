@@ -1,14 +1,19 @@
 import os
 
-from faststream.rabbit import RabbitBroker
+from faststream import FastStream
+from faststream.rabbit import RabbitBroker, RabbitQueue
 
-RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
+RABBITMQ_URL = os.getenv("RABBITMQ_URL")
+if not RABBITMQ_URL:
+    raise RuntimeError("RABBITMQ_URL is not set - define it in .env (see .env.example)")
 
-# Queue names shared by the API, the consumer and the outbox worker
-NEW_PAYMENT_QUEUE = "payments.new"
-DLQ_QUEUE = "outbox.dlq"
-
-# Single broker instance shared by the consumer (subscriber) and
-# the outbox worker (publisher). The API no longer talks to RabbitMQ directly:
-# publication happens only through the outbox table (classic outbox pattern).
+# Single broker instance shared by the consumer (subscriber) and the outbox relay (publisher)
 broker = RabbitBroker(RABBITMQ_URL)
+app = FastStream(broker)
+
+# Durable queue objects: FastStream declares them on startup.
+# Queue properties (durable) must match on every declare, otherwise RabbitMQ
+# raises PRECONDITION_FAILED - always use these objects, not bare strings,
+# for subscribers and publishers.
+payments_new_queue = RabbitQueue("payments.new", durable=True)
+outbox_dlq_queue = RabbitQueue("outbox.dlq", durable=True)

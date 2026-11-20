@@ -1,9 +1,9 @@
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from datetime import datetime
-from decimal import Decimal
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Optional, Dict, Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from src.core.models.models import PaymentStatus
 
 
 class Currency(str, Enum):
@@ -12,36 +12,33 @@ class Currency(str, Enum):
     EUR = "EUR"
 
 
-class PaymentStatus(str, Enum):
-    PENDING = "pending"
-    SUCCEEDED = "succeeded"
-    FAILED = "failed"
-
-
 class PaymentCreate(BaseModel):
-    amount: Decimal = Field(
-        ...,
-        gt=0,
-        max_digits=12,
-        decimal_places=2,
-        description="Payment amount must be greater than 0",
-    )
+    amount: float = Field(..., gt=0, description="Payment amount must be greater than 0")
     currency: Currency
     description: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    additional: Optional[Dict[str, Any]] = None
     webhook_url: str = Field(..., description="URL for webhook notifications")
 
 
 class PaymentResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
     id: str
-    amount: Decimal
+    amount: float
     currency: Currency
     description: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
-    status: PaymentStatus
+    additional: Optional[Dict[str, Any]] = None
+    status: str
     idempotency_key: str
     webhook_url: str
     created_at: datetime
     processed_at: Optional[datetime] = None
+
+    @field_validator("status", mode="before")
+    @classmethod
+    def status_to_api_string(cls, value):
+        if isinstance(value, PaymentStatus):
+            return value.as_string
+        if isinstance(value, int):
+            return PaymentStatus(value).as_string
+        return value
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
