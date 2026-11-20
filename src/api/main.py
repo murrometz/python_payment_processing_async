@@ -5,11 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from src.database.database import engine
-
-API_KEY = os.getenv("API_KEY")
-if not API_KEY:
-    raise RuntimeError("API_KEY is not set - define it in .env (see .env.example)")
-
+from src.config.config import settings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -31,7 +27,7 @@ app = FastAPI(
 async def api_key_auth(request: Request, call_next):
     if request.url.path.startswith("/api"):
         api_key = request.headers.get("X-API-Key")
-        if api_key != API_KEY:
+        if api_key != settings.api_key:
             return JSONResponse(
                 status_code=401,
                 content={"detail": "Invalid API Key"},

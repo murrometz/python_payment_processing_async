@@ -3,12 +3,10 @@ import os
 from faststream import FastStream
 from faststream.rabbit import RabbitBroker, RabbitQueue
 
-RABBITMQ_URL = os.getenv("RABBITMQ_URL")
-if not RABBITMQ_URL:
-    raise RuntimeError("RABBITMQ_URL is not set - define it in .env (see .env.example)")
+from src.config.config import settings
 
 # Single broker instance shared by the consumer (subscriber) and the outbox relay (publisher)
-broker = RabbitBroker(RABBITMQ_URL)
+broker = RabbitBroker(settings.rabbitmq_url)
 app = FastStream(broker)
 
 # Durable queue objects: FastStream declares them on startup.

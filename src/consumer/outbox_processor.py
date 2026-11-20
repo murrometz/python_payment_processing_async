@@ -7,18 +7,15 @@ from sqlalchemy import select, update
 from src.core.models.models import OutboxMessage
 from src.database.database import AsyncSessionLocal
 from src.messaging.rabbitmq import broker, outbox_dlq_queue, payments_new_queue
+from src.config.config import settings
 
 logger = logging.getLogger("outbox_worker")
-
-BATCH_SIZE = 50
-POLL_INTERVAL = 2  # seconds
-MAX_DELIVERY_ATTEMPTS = 3
 
 
 async def _post_webhook(url: str, payload: dict) -> int | None:
     """Single HTTP attempt. Returns the status code or None on a network error."""
     try:
-        timeout = aiohttp.ClientTimeout(total=10)
+        timeout = aiohttp.ClientTimeout(total=settings.webhook_timeout)
         async with aiohttp.ClientSession(timeout=timeout) as http:
             async with http.post(url, json=payload) as response:
                 return response.status
@@ -27,7 +24,7 @@ async def _post_webhook(url: str, payload: dict) -> int | None:
         return None
 
 
-async def send_webhook_with_retry(url: str, payload: dict, max_retries: int = MAX_DELIVERY_ATTEMPTS):
+async def send_webhook_with_retry(url: str, payload: dict, max_retries: int | None = None):
     """Deliver a webhook with up to max_retries attempts (1s/2s/4s backoff).
 
     Returns (delivered, last_error):
@@ -36,6 +33,8 @@ async def send_webhook_with_retry(url: str, payload: dict, max_retries: int = MA
                   retrying would only repeat the same answer
       5xx/net  -> transient failure, retried with backoff
     """
+
+    max_retries = max_retries or settings.outbox_max_attempts
     last_error = None
     for attempt in range(max_retries):
         status_code = await _post_webhook(url, payload)
@@ -73,7 +72,7 @@ async def process_outbox_batch():
             select(OutboxMessage)
             .where(OutboxMessage.processed == False)  # noqa: E712
             .order_by(OutboxMessage.created_at)
-            .limit(BATCH_SIZE)
+            .limit(settings.outbox_batch_size)
             .with_for_update(skip_locked=True)
         )
         messages = result.scalars().all()
@@ -132,13 +131,13 @@ async def outbox_worker():
     """Background task: polls the outbox table. For 'payment.new' records it
     publishes events to RabbitMQ; for 'payment.processed' it delivers webhooks."""
     await asyncio.sleep(2)  # give the broker a moment to finish connecting
-    logger.info("Outbox worker started (poll every %ss)", POLL_INTERVAL)
+    logger.info("Outbox worker started (poll every %ss)", settings.outbox_poll_interval)
     while True:
         try:
             await process_outbox_batch()
         except Exception:
             logger.exception("Outbox batch failed")
-        await asyncio.sleep(POLL_INTERVAL)
+        await asyncio.sleep(settings.outbox_poll_interval)
 
 
 @broker.subscriber(outbox_dlq_queue)

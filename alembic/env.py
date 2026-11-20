@@ -8,6 +8,7 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from src.core.models.models import Base
+from src.config.config import settings
 
 config = context.config
 
@@ -15,7 +16,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Take the DB URL from the environment (DATABASE_URL)
-database_url = os.getenv("DATABASE_URL")
+database_url = settings.database_url
 if not database_url:
     raise RuntimeError("DATABASE_URL is not set - define it in .env (see .env.example)")
 config.set_main_option("sqlalchemy.url", database_url)
