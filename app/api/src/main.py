@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request, HTTPException, status
 from contextlib import asynccontextmanager
-from .database import engine, Base
+from database.session import engine, Base
 import os
 
 @asynccontextmanager
@@ -34,6 +34,5 @@ async def api_key_auth(request: Request, call_next):
     return await call_next(request)
 
 # Import routers
-from .api import payments
-
+from api import payments
 app.include_router(payments.router, prefix="/api/v1", tags=["payments"])

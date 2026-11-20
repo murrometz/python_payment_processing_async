@@ -1,28 +1,28 @@
 [tool.poetry]
-name = "payment-processing-service"
+name = "payment-processing"
 version = "0.1.0"
-description = "Async payment processing microservice"
-authors = ["Your Name <your.email@example.com>"]
+description = "Multithread payment processing"
 package-mode = false
+authors = ["Roman Muradyan <murrometz@gmail.com>"]
 
-[tool.poetry.dependencies]
-python = "^3.11"
-fastapi = "^0.104.1"
-uvicorn = {extras = ["standard"], version = "^0.24.0"}
-sqlalchemy = "^2.0.23"
-asyncpg = "^0.29.0"
-alembic = "^1.12.1"
-pydantic = "^2.5.0"
-
-# Общие зависимости для работы с БД и моделями
-[tool.poetry.group.consumer.dependencies]
-faststream = {extras = ["rabbit"], version = "^0.1.4"}
-aiohttp = "^3.9.1"
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^7.4.3"
-pytest-asyncio = "^0.21.1"
+# === Workspace modules ===
+[tool.poetry.workspace]
+members = [
+    "app/core",
+    "app/database",
+    "app/api",
+    "app/consumer",
+    "app/messaging"
+]
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+# Deps
+[tool.poetry.dependencies]
+python = "^3.11"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.3"
+pytest-asyncio = "^0.21.1"

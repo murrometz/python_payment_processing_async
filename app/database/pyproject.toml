@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "payment-database"
+version = "0.1.0"
+description = "Database connection and session management for payment service"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+# Dependency on the Core module to access Base and models
+core = {path = "../app/core", develop = true}
+
+# Database drivers
+sqlalchemy = "^2.0.23"
+asyncpg = "^0.29.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

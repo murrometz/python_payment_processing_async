@@ -1,0 +1,32 @@
+# syntax=docker/dockerfile:1.4
+FROM python:3.11-slim AS base
+WORKDIR /app
+
+# ---------- Stage 1: Install dependencies ----------
+FROM base AS dependencies
+COPY pyproject.toml poetry.lock ./
+# Устанавливаем зависимости.
+# --with consumer подтянет faststream.
+# --only main исключит dev-зависимости (pytest).
+RUN pip install poetry && \
+    poetry config virtualenvs.create false && \
+    poetry install --no-interaction --no-ansi --only main --with consumer
+
+# ---------- Stage 2: Runtime ----------
+FROM base AS runtime
+WORKDIR /app
+
+# Копируем виртуальное окружение
+COPY --from=dependencies /app/.venv /app/.venv
+
+# 1. Копируем код самого Consumer (точка входа)
+COPY app/consumers/src/ ./app/consumers/src/
+
+# 2. Копируем ТОЛЬКО модели (Payment, Outbox), которые нужны для логики consumer
+COPY app/core/src/models/ ./app/core/src/models/
+
+# Активируем виртуальное окружение
+ENV PATH="/app/.venv/bin:$PATH"
+
+# Запуск
+CMD ["faststream", "run", "app.consumers.src.payment_consumer:broker", "--workers", "1"]

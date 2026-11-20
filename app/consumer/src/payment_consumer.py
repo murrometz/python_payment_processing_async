@@ -2,8 +2,8 @@ from faststream import Context
 from faststream.rabbit import RabbitBroker
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
-from ..database import AsyncSessionLocal
-from ..models.models import Payment, PaymentStatus, OutboxMessage
+from database import AsyncSessionLocal
+from models.models import Payment, PaymentStatus, OutboxMessage
 import asyncio
 import random
 import aiohttp

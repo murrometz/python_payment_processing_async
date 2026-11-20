@@ -1,5 +1,6 @@
 .env
 env
+.venv
 tasks/
 .venv
 .aiforopenide

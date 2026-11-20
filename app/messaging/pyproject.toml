@@ -1,0 +1,12 @@
+[tool.poetry]
+name = "payment-messaging"
+version = "0.1.0"
+description = "RabbitMQ broker configuration and event publishers"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+faststream = {extras = ["rabbit"], version = "^0.1.4"}
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
