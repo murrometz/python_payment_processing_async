@@ -1,0 +1,46 @@
+# --- VCS / IDE ---
+.git/
+.gitignore
+.idea/
+.vscode/
+
+# --- Secrets: .env никогда не должен попадать в слой образа ---
+.env
+.env.*
+!.env.example
+
+# --- Python artifacts ---
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# --- Poetry / packaging ---
+# В образ копируются pyproject.toml и poetry.lock — исключать их нельзя,
+# всё остальное poetry-артефакты в образ не нужно
+dist/
+build/
+
+# --- Docker-инфраструктура (в образ не нужна) ---
+docker-compose.yml
+docker/
+Dockerfile*
+
+# --- Docs and misc ---
+README.md
+*.md
+.gitattributes
+COMMIT_MESSAGE
+
+# --- Local task notes / dumps ---
+tasks/
+
+# --- Runtime junk ---
+*.log

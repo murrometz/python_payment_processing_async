@@ -1,0 +1,16 @@
+FROM python:3.11-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir poetry && poetry config virtualenvs.create false
+
+COPY pyproject.toml poetry.lock ./
+RUN poetry install --no-interaction --no-ansi --only main
+
+COPY src/ ./src/
+
+CMD ["faststream", "run", "src.consumer.payment_consumer:app", "--workers", "1"]

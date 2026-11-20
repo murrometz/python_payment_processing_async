@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+*.egg-info/
+.idea/
+.gigaide/
+.aiforopenide/
+dist/
+.pytest_cache/
+tasks/
+.venv
+.aiforopenide
+.gigaide
+.idea
+tmp
