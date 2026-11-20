@@ -11,10 +11,13 @@ fastapi = "^0.104.1"
 uvicorn = {extras = ["standard"], version = "^0.24.0"}
 sqlalchemy = "^2.0.23"
 asyncpg = "^0.29.0"
-faststream = {extras = ["rabbit"], version = "^0.1.4"}
-aiohttp = "^3.9.1"
 alembic = "^1.12.1"
 pydantic = "^2.5.0"
+
+# Общие зависимости для работы с БД и моделями
+[tool.poetry.group.consumer.dependencies]
+faststream = {extras = ["rabbit"], version = "^0.1.4"}
+aiohttp = "^3.9.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"
