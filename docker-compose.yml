@@ -11,6 +11,11 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d payments"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   rabbitmq:
     image: rabbitmq:3-management
@@ -22,30 +27,48 @@ services:
       - "15672:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   api:
     build:
       context: .
-      dockerfile: Dockerfile.api
+      dockerfile: docker/Dockerfile.api
     environment:
       DATABASE_URL: postgresql+asyncpg://user:password@postgres:5432/payments
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      API_KEY: your_static_api_key_here
     ports:
       - "8000:8000"
     depends_on:
-      - postgres
-      - rabbitmq
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      volumes:
+        - ./alembic:/app/alembic
+        - ./src:/app/src
+    command: ["sh", "-c", "alembic upgrade head && uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload"]
 
   consumer:
     build:
       context: .
-      dockerfile: Dockerfile.consumer
+      dockerfile: docker/Dockerfile.consumer
     environment:
       DATABASE_URL: postgresql+asyncpg://user:password@postgres:5432/payments
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      API_KEY: your_static_api_key_here
     depends_on:
-      - postgres
-      - rabbitmq
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+    command: faststream run src.consumer.payment_consumer:app --reload
 
 volumes:
   postgres_data:

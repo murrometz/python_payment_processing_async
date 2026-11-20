@@ -4,21 +4,17 @@ from contextlib import asynccontextmanager
 import os
 
 from src.database.database import engine
-from src.core.models.models import Base
-from src.messaging.rabbitmq import broker
 
 API_KEY = os.getenv("API_KEY", "your_static_api_key_here")
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Fallback until Alembic migrations are wired in
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    # Connect the broker so the API can publish events
-    await broker.start()
+    # Tables are created by Alembic migrations, run before uvicorn in the
+    # container entrypoint: "alembic upgrade head && uvicorn ..."
     yield
-    await broker.close()
     await engine.dispose()
+
 
 app = FastAPI(
     title="Payment Processing Service",
@@ -26,6 +22,7 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
 
 @app.middleware("http")
 async def api_key_auth(request: Request, call_next):
@@ -38,5 +35,12 @@ async def api_key_auth(request: Request, call_next):
             )
     return await call_next(request)
 
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
 from src.api import payments
+
 app.include_router(payments.router, prefix="/api/v1", tags=["payments"])

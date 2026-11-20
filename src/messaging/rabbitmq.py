@@ -1,15 +1,14 @@
 import os
 
-from faststream import FastStream, Context
 from faststream.rabbit import RabbitBroker
 
 RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
 
-# Single broker instance shared by the API (publisher) and consumer (subscriber)
-broker = RabbitBroker(RABBITMQ_URL)
-app = FastStream(broker)
+# Queue names shared by the API, the consumer and the outbox worker
+NEW_PAYMENT_QUEUE = "payments.new"
+DLQ_QUEUE = "outbox.dlq"
 
-@broker.publisher("payments.new")
-async def publish_payment_event(event: dict) -> None:
-    """Publishes a new payment event to the 'payments.new' queue."""
-    await broker.publish(event, queue="payments.processing")
+# Single broker instance shared by the consumer (subscriber) and
+# the outbox worker (publisher). The API no longer talks to RabbitMQ directly:
+# publication happens only through the outbox table (classic outbox pattern).
+broker = RabbitBroker(RABBITMQ_URL)

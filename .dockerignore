@@ -1,12 +1,6 @@
-.git
-.venv
-__pycache__
+__pycache__/
 *.pyc
-.gigaide
-.aiforopenide
-tasks
-docker
-*.md
+.venv/
+.git/
 .env
-Dockerfile*
-docker-compose.yml
+alembic/versions/*.pyc
