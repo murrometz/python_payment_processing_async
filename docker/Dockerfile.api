@@ -1,33 +1,19 @@
-# syntax=docker/dockerfile:1.4
-FROM python:3.11-slim AS base
+FROM python:3.11-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1
+
 WORKDIR /app
 
-# The dockerfile is optimized for multi-stage builds, copies only the necessary source files and excludes the .venv folder.
+RUN pip install --no-cache-dir poetry && poetry config virtualenvs.create false
 
-# ---------- Stage 1: Install dependencies ----------
-FROM base AS dependencies
 COPY pyproject.toml poetry.lock ./
-RUN pip install poetry && \
-    poetry config virtualenvs.create false && \
-    poetry install --no-interaction --no-ansi --only main
+RUN poetry install --no-interaction --no-ansi --only main
 
-# ---------- Stage 2: Runtime ----------
-FROM base AS runtime
-WORKDIR /app
+# Copy the whole source tree, no selective copies
+COPY src/ ./src/
 
-# Copy virtual environment from the dependencies stage
-COPY --from=dependencies /app/.venv /app/.venv
-
-# Copy only the source code required for the API
-# We exclude tests and other service folders at the docker-compose build context level
-COPY app/ ./app/
-
-# Activate the virtual environment
-ENV PATH="/app/.venv/bin:$PATH"
-
-# Expose port
 EXPOSE 8000
 
-# Run the application
-ENV PATH="/app/.venv/bin:$PATH"
-CMD ["uvicorn", "app.api.src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
